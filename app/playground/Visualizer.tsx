@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import type { RealProblem, TraceFrame } from "@/app/lib/tracer/types";
 
 type TreeInput = {
@@ -79,7 +80,6 @@ function layoutTree(root: TreeInput): TreeNodeLayout[] | null {
 
   setPositions(0, 0, 30, 80);
 
-  // Center the tree by offsetting all x values by half the max x
   const maxX = Math.max(...nodes.map((n) => n.x), 0);
   for (const node of nodes) {
     node.x += maxX / 2 + 30;
@@ -135,6 +135,9 @@ function getHighlightIndices(frame: TraceFrame, name: string): { index: number; 
   return Array.from(indices.values());
 }
 
+const springTransition = { type: "spring" as const, stiffness: 320, damping: 24 };
+const quickTransition = { duration: 0.18 };
+
 function ArrayView({ name, values, frame }: { name: string; values: unknown[]; frame: TraceFrame }) {
   const pointers = getPointers(frame, name, values.length);
   const highlights = getHighlightIndices(frame, name);
@@ -142,36 +145,59 @@ function ArrayView({ name, values, frame }: { name: string; values: unknown[]; f
   const highlightMap = new Map(highlights.map((h) => [h.index, h]));
 
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={quickTransition}
+      className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4"
+    >
       <h3 className="text-sm font-medium text-zinc-500 mb-3">{name}</h3>
       <div className="flex items-end gap-1 overflow-auto pb-2">
         {values.map((value, idx) => {
           const pointer = pointerMap.get(idx);
           const highlight = highlightMap.get(idx);
-          const borderClass =
-            highlight?.kind === "current"
-              ? "border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-100"
-              : highlight?.kind === "dependency"
-              ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-100"
-              : "border-zinc-300 dark:border-zinc-700";
+          const isCurrent = highlight?.kind === "current";
+          const isDep = highlight?.kind === "dependency";
+          const borderClass = isCurrent
+            ? "border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-100"
+            : isDep
+            ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-100"
+            : "border-zinc-300 dark:border-zinc-700";
           return (
             <div key={idx} className="flex flex-col items-center gap-1">
               {pointer && (
-                <span className="rounded-full bg-indigo-600 px-1.5 text-[10px] font-bold text-white">
+                <motion.span
+                  layout
+                  initial={{ opacity: 0, scale: 0.6 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="rounded-full bg-indigo-600 px-1.5 text-[10px] font-bold text-white"
+                >
                   {pointer.label}
-                </span>
+                </motion.span>
               )}
-              <div
+              <motion.div
+                layout
+                transition={springTransition}
+                animate={{ scale: isCurrent ? 1.08 : 1 }}
+                whileHover={{ scale: 1.05 }}
                 className={`flex h-10 min-w-[2.5rem] items-center justify-center rounded-lg border px-2 font-mono text-sm font-medium ${borderClass}`}
               >
-                {formatCell(value)}
-              </div>
+                <motion.span
+                  key={String(value)}
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={quickTransition}
+                >
+                  {formatCell(value)}
+                </motion.span>
+              </motion.div>
               <span className="text-[10px] text-zinc-400">{idx}</span>
             </div>
           );
         })}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -181,7 +207,13 @@ function StackView({ values, frame }: { values: unknown[]; frame: TraceFrame }) 
   const highlightMap = new Map(highlights.map((h) => [h.index, h]));
 
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={quickTransition}
+      className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4"
+    >
       <h3 className="text-sm font-medium text-zinc-500 mb-3">stack</h3>
       <div className="flex min-h-[120px] flex-col-reverse items-center gap-1">
         {values.length === 0 ? (
@@ -191,8 +223,12 @@ function StackView({ values, frame }: { values: unknown[]; frame: TraceFrame }) 
             const isTop = idx === topIndex;
             const highlight = highlightMap.get(idx);
             return (
-              <div
+              <motion.div
                 key={idx}
+                layout
+                initial={{ opacity: 0, scale: 0.8, y: -20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={springTransition}
                 className={`flex h-10 min-w-[2.5rem] items-center justify-center rounded-lg border px-3 font-mono text-sm font-medium ${
                   isTop
                     ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-100"
@@ -201,13 +237,20 @@ function StackView({ values, frame }: { values: unknown[]; frame: TraceFrame }) 
                     : "border-zinc-300 dark:border-zinc-700"
                 }`}
               >
-                {formatCell(value)}
-              </div>
+                <motion.span
+                  key={String(value)}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={quickTransition}
+                >
+                  {formatCell(value)}
+                </motion.span>
+              </motion.div>
             );
           })
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -216,7 +259,13 @@ function QueueView({ values, frame }: { values: unknown[]; frame: TraceFrame }) 
   const highlightMap = new Map(highlights.map((h) => [h.index, h]));
 
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={quickTransition}
+      className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4"
+    >
       <h3 className="text-sm font-medium text-zinc-500 mb-3">queue</h3>
       <div className="flex items-center gap-2 overflow-auto pb-2">
         {values.length === 0 ? (
@@ -225,8 +274,12 @@ function QueueView({ values, frame }: { values: unknown[]; frame: TraceFrame }) 
           values.map((value, idx) => {
             const highlight = highlightMap.get(idx);
             return (
-              <div
+              <motion.div
                 key={idx}
+                layout
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={springTransition}
                 className={`flex h-10 min-w-[2.5rem] items-center justify-center rounded-lg border px-2 font-mono text-sm font-medium ${
                   idx === 0
                     ? "border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-100"
@@ -235,13 +288,20 @@ function QueueView({ values, frame }: { values: unknown[]; frame: TraceFrame }) 
                     : "border-zinc-300 dark:border-zinc-700"
                 }`}
               >
-                {formatCell(value)}
-              </div>
+                <motion.span
+                  key={String(value)}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={quickTransition}
+                >
+                  {formatCell(value)}
+                </motion.span>
+              </motion.div>
             );
           })
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -260,7 +320,13 @@ function GridView({ name, values, frame }: { name: string; values: unknown[][]; 
   }
 
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 overflow-auto">
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={quickTransition}
+      className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 overflow-auto"
+    >
       <h3 className="text-sm font-medium text-zinc-500 mb-3">{name}</h3>
       <table className="border-collapse">
         <tbody>
@@ -276,11 +342,22 @@ function GridView({ name, values, frame }: { name: string; values: unknown[][]; 
                   : "border-zinc-300 dark:border-zinc-700";
                 return (
                   <td key={c} className="p-1">
-                    <div
+                    <motion.div
+                      layout
+                      transition={springTransition}
+                      animate={{ scale: isCurrent ? 1.08 : 1 }}
+                      whileHover={{ scale: 1.05 }}
                       className={`flex h-10 w-12 items-center justify-center rounded-md border font-mono text-sm font-medium ${cellClass}`}
                     >
-                      {formatCell(value)}
-                    </div>
+                      <motion.span
+                        key={String(value)}
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={quickTransition}
+                      >
+                        {formatCell(value)}
+                      </motion.span>
+                    </motion.div>
                   </td>
                 );
               })}
@@ -293,7 +370,7 @@ function GridView({ name, values, frame }: { name: string; values: unknown[][]; 
           {name}[{current.r},{current.c}] = {formatCell(frame.changed.newValue)} (was {formatCell(frame.changed.previousValue)})
         </p>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -305,39 +382,63 @@ function TreeView({ root }: { root: TreeInput }) {
   const maxY = Math.max(...nodes.map((n) => n.y), 0) + 60;
 
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 overflow-auto">
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={quickTransition}
+      className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 overflow-auto"
+    >
       <h3 className="text-sm font-medium text-zinc-500 mb-3">tree</h3>
-      <svg width={maxX} height={maxY} viewBox={`0 0 ${maxX} ${maxY}`}>
+      <motion.svg
+        layout
+        width={maxX}
+        height={maxY}
+        viewBox={`0 0 ${maxX} ${maxY}`}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
         {nodes.map((node, i) => {
           const left = node.left !== null ? nodes[node.left] : null;
           const right = node.right !== null ? nodes[node.right] : null;
           return (
             <g key={`edge-${i}`}>
               {left && (
-                <line
+                <motion.line
                   x1={node.x}
                   y1={node.y}
                   x2={left.x}
                   y2={left.y}
                   stroke="currentColor"
                   className="text-zinc-300 dark:text-zinc-700"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
                 />
               )}
               {right && (
-                <line
+                <motion.line
                   x1={node.x}
                   y1={node.y}
                   x2={right.x}
                   y2={right.y}
                   stroke="currentColor"
                   className="text-zinc-300 dark:text-zinc-700"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
                 />
               )}
             </g>
           );
         })}
         {nodes.map((node, i) => (
-          <g key={`node-${i}`}>
+          <motion.g
+            key={`node-${i}`}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ ...springTransition, delay: i * 0.03 }}
+          >
             <circle
               cx={node.x}
               cy={node.y}
@@ -352,28 +453,57 @@ function TreeView({ root }: { root: TreeInput }) {
             >
               {formatCell(node.val)}
             </text>
-          </g>
+          </motion.g>
         ))}
-      </svg>
-    </div>
+      </motion.svg>
+    </motion.div>
   );
 }
 
-function VariablesPanel({ variables }: { variables: Record<string, unknown> }) {
-  const entries = Object.entries(variables || {});
+function VariablesPanel({ frame }: { frame: TraceFrame }) {
+  const entries = Object.entries(frame.variables || {});
+  const changedName = frame.changed?.name;
   if (entries.length === 0) return null;
+
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={quickTransition}
+      className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4"
+    >
       <h3 className="text-sm font-medium text-zinc-500 mb-3">Variables</h3>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {entries.map(([name, value]) => (
-          <div key={name} className="rounded-lg border border-zinc-200 dark:border-zinc-800 px-3 py-2">
-            <span className="block text-xs text-zinc-500">{name}</span>
-            <span className="block truncate font-mono text-sm">{formatValue(value)}</span>
-          </div>
-        ))}
+        {entries.map(([name, value]) => {
+          const isChanged = name === changedName;
+          return (
+            <motion.div
+              key={name}
+              layout
+              transition={springTransition}
+              animate={{ scale: isChanged ? 1.03 : 1 }}
+              className={`rounded-lg border px-3 py-2 ${
+                isChanged
+                  ? "border-amber-400 bg-amber-50/50 dark:bg-amber-950/30"
+                  : "border-zinc-200 dark:border-zinc-800"
+              }`}
+            >
+              <span className="block text-xs text-zinc-500">{name}</span>
+              <motion.span
+                key={JSON.stringify(value)}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={quickTransition}
+                className="block truncate font-mono text-sm"
+              >
+                {formatValue(value)}
+              </motion.span>
+            </motion.div>
+          );
+        })}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -388,8 +518,8 @@ function shouldSkipVisual(problem: RealProblem, kind: "arrays" | "grids", name: 
 export function Visualizer({ frame, problem }: { frame: TraceFrame | null; problem: RealProblem }) {
   if (!frame) {
     return (
-      <div className="text-sm text-zinc-500 p-4">
-        Press <strong>Run</strong> to generate a trace, then use the controls to step through.
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center text-sm text-zinc-500">
+        <p>Press <strong>Run</strong> to generate a trace, then use the controls to step through.</p>
       </div>
     );
   }
@@ -399,12 +529,18 @@ export function Visualizer({ frame, problem }: { frame: TraceFrame | null; probl
   return (
     <div className="flex flex-col gap-4 p-4 overflow-auto">
       {frame.note && (
-        <div className="rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-950/30 p-4">
+        <motion.div
+          layout
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={quickTransition}
+          className="rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-950/30 p-4"
+        >
           <p className="text-sm font-medium text-indigo-900 dark:text-indigo-100">{frame.note}</p>
-        </div>
+        </motion.div>
       )}
 
-      <VariablesPanel variables={frame.variables} />
+      <VariablesPanel frame={frame} />
 
       {root && <TreeView root={root} />}
 
@@ -423,10 +559,16 @@ export function Visualizer({ frame, problem }: { frame: TraceFrame | null; probl
         })}
 
       {frame.output !== undefined && (
-        <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/30 p-4">
+        <motion.div
+          layout
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={quickTransition}
+          className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/30 p-4"
+        >
           <h3 className="text-sm font-medium text-emerald-900 dark:text-emerald-100">Output</h3>
           <pre className="font-mono text-sm mt-1">{formatValue(frame.output)}</pre>
-        </div>
+        </motion.div>
       )}
     </div>
   );

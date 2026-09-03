@@ -39,6 +39,9 @@ export type TraceFrame = {
   output?: unknown;
 };
 
+export const SUPPORTED_LANGUAGES = ["javascript", "typescript", "python"] as const;
+export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+
 export type RealProblem = {
   id: string;
   name: string;
@@ -48,7 +51,8 @@ export type RealProblem = {
   examples: { input: string; output: string; explanation?: string }[];
   constraints?: string;
   starterCode: string;
-  language: "javascript";
+  starterCodeByLanguage?: Partial<Record<SupportedLanguage, string>>;
+  language: SupportedLanguage;
   input: Record<string, unknown>;
 };
 

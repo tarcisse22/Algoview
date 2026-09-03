@@ -3,6 +3,9 @@ import traverse from "@babel/traverse";
 import type { NodePath } from "@babel/traverse";
 import generate from "@babel/generator";
 import * as t from "@babel/types";
+import { transformSync } from "@babel/core";
+import tsPreset from "@babel/preset-typescript";
+import type { SupportedLanguage } from "./types";
 
 const TRACE = "__alv_trace";
 const DECLARE = "__alv_declare";
@@ -88,9 +91,20 @@ function isInstrumentationNode(node: t.Statement): boolean {
   return t.isIdentifier(callee) && callee.name.startsWith("__alv");
 }
 
-export function instrument(code: string): { ok: true; code: string } | { ok: false; error: string } {
+function stripTypeScript(code: string): string {
+  const result = transformSync(code, {
+    filename: "solution.ts",
+    presets: [[tsPreset, { allExtensions: true }]],
+    parserOpts: { allowReturnOutsideFunction: true },
+    configFile: false,
+  });
+  return result?.code ?? code;
+}
+
+export function instrument(code: string, language?: SupportedLanguage): { ok: true; code: string } | { ok: false; error: string } {
   try {
-    const ast = parse(code, {
+    const source = language === "typescript" ? stripTypeScript(code) : code;
+    const ast = parse(source, {
       sourceType: "script",
       allowReturnOutsideFunction: true,
       allowUndeclaredExports: false,

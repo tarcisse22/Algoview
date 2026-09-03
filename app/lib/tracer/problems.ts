@@ -23,6 +23,30 @@ for (let r = 0; r < m; r++) {
 }
 
 return dp[m - 1][n - 1];`,
+    starterCodeByLanguage: {
+      typescript: `const dp: number[][] = Array.from({ length: m }, () => new Array(n).fill(0));
+dp[0][0] = 1;
+
+for (let r: number = 0; r < m; r++) {
+  for (let c: number = 0; c < n; c++) {
+    if (r > 0) dp[r][c] += dp[r - 1][c];
+    if (c > 0) dp[r][c] += dp[r][c - 1];
+  }
+}
+
+return dp[m - 1][n - 1];`,
+      python: `dp = [[0 for _ in range(n)] for _ in range(m)]
+dp[0][0] = 1
+
+for r in range(m):
+    for c in range(n):
+        if r > 0:
+            dp[r][c] += dp[r - 1][c]
+        if c > 0:
+            dp[r][c] += dp[r][c - 1]
+
+return dp[m - 1][n - 1]`,
+    },
     language: "javascript",
     input: { m: 3, n: 4 },
   },
@@ -52,6 +76,38 @@ while (left < right) {
 }
 
 return [-1, -1];`,
+    starterCodeByLanguage: {
+      typescript: `let left: number = 0;
+let right: number = nums.length - 1;
+
+while (left < right) {
+  let sum: number = nums[left] + nums[right];
+
+  if (sum === target) {
+    return [left + 1, right + 1];
+  } else if (sum < target) {
+    left++;
+  } else {
+    right--;
+  }
+}
+
+return [-1, -1];`,
+      python: `left = 0
+right = len(nums) - 1
+
+while left < right:
+    total = nums[left] + nums[right]
+
+    if total == target:
+        return [left + 1, right + 1]
+    elif total < target:
+        left += 1
+    else:
+        right -= 1
+
+return [-1, -1]`,
+    },
     language: "javascript",
     input: { nums: [2, 7, 11, 15], target: 9 },
   },
@@ -81,6 +137,37 @@ for (let i = 0; i < s.length; i++) {
 }
 
 return stack.length === 0;`,
+    starterCodeByLanguage: {
+      typescript: `const stack: string[] = [];
+const pairs: Record<string, string> = { ')': '(', '}': '{', ']': '[' };
+
+for (let i: number = 0; i < s.length; i++) {
+  const char: string = s[i];
+
+  if (pairs[char] === undefined) {
+    stack.push(char);
+  } else {
+    const top = stack.pop();
+    if (top !== pairs[char]) {
+      return false;
+    }
+  }
+}
+
+return stack.length === 0;`,
+      python: `stack = []
+pairs = {')': '(', '}': '{', ']': '['}
+
+for char in s:
+    if char not in pairs:
+        stack.append(char)
+    else:
+        top = stack.pop()
+        if top != pairs[char]:
+            return False
+
+return len(stack) == 0`,
+    },
     language: "javascript",
     input: { s: "{[()]()}" },
   },
@@ -116,6 +203,56 @@ while (queue.length > 0) {
 }
 
 return result;`,
+    starterCodeByLanguage: {
+      typescript: `interface TreeNode {
+  val: number;
+  left: TreeNode | null;
+  right: TreeNode | null;
+}
+
+const result: number[][] = [];
+const queue: TreeNode[] = [root];
+
+while (queue.length > 0) {
+  const size = queue.length;
+  const level: number[] = [];
+
+  for (let i: number = 0; i < size; i++) {
+    const node = queue.shift()!;
+    level.push(node.val);
+
+    if (node.left !== null) {
+      queue.push(node.left);
+    }
+    if (node.right !== null) {
+      queue.push(node.right);
+    }
+  }
+
+  result.push(level);
+}
+
+return result;`,
+      python: `result = []
+queue = [root]
+
+while queue:
+    size = len(queue)
+    level = []
+
+    for _ in range(size):
+        node = queue.pop(0)
+        level.append(node.val)
+
+        if node.left is not None:
+            queue.append(node.left)
+        if node.right is not None:
+            queue.append(node.right)
+
+    result.append(level)
+
+return result`,
+    },
     language: "javascript",
     input: {
       root: {

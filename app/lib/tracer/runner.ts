@@ -153,7 +153,10 @@ function buildFrames(events: TraceEvent[], initialState: Record<string, unknown>
 }
 
 export function runProblem(problem: Problem): RunResult {
-  const instrumented = instrument(problem.starterCode);
+  if (problem.language === "python") {
+    return { ok: false, error: "Python trace execution is coming soon. Switch to JavaScript or TypeScript to trace code." };
+  }
+  const instrumented = instrument(problem.starterCode, problem.language);
   if (!instrumented.ok) {
     return { ok: false, error: `Syntax error: ${instrumented.error}` };
   }
